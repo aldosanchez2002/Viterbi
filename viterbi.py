@@ -1,65 +1,73 @@
 '''
-Viterbi algorithm for HMM
+Viterbi algorithm for Hidden Markov Models
 '''
-import numpy as np
-
-class State:
-    def __init__(self,str, index: int, emissionProbs: dict):
-        self.index = index
-        self.emissionProbs = emissionProbs
-
 class hiddenMarkovModel:
-    
-    def __init__(self, observations: list, transitionsProbabilities: np.array, emissionProbabilities: np.array, initialProbabilities: dict):
+
+    def __init__(self, observations: list, transitionsProbabilities: list, emissionProbabilities: list, initialProbabilities: list):
         '''
-        observations: a list of observations integers
-        transitionProbabilities: a matrix of transition probabilities from state i to state j
-        emissionProbabilities: a matrix of dictionaries with emission probabilities from state i to observation j
-        initialProbabilities: a dict of initial probabilities for each state
+        obersevations: list of observations
+        transitionsProbabilities: list of lists of transition probabilities from state i to state j
+        emissionProbabilities: list of lists of emission probabilities from state i to observation j
+        initialProbabilities: list of initial probabilities for each state
         '''
         self.observations = observations
         self.transitionsProbabilities = transitionsProbabilities
         self.emissionProbabilities = emissionProbabilities
         self.initialProbabilities = initialProbabilities
         self.states = len(initialProbabilities)
+        
+    @classmethod
+    def buildDefault(self):
+        observations =             [0, 1, 0, 1]
+        transitionsProbabilities = [[0.7, 0.3], 
+                                    [0.4, 0.6]]
+        emissionProbabilities =    [[0.1, 0.4], 
+                                    [0.6, 0.3]]
+        initialProbabilities =     [0.6, 0.4]
+        return hiddenMarkovModel(observations, transitionsProbabilities, emissionProbabilities, initialProbabilities)
 
     def viterbi(self, observations: list):
-        viterbiMatrix = np.zeros((self.states, len(observations)))
+        viterbiMatrix = [[0 for _ in observations] for j in range(self.states)]
+        prevStateMatrix = [[-1 for _ in observations] for j in range(self.states)]
         '''
-        
+            First column value is:
+            The probability of starting in the first state multiplied by 
+            The probability of the first emission at that state
         '''
         for i in range(self.states):
-            '''
-            First value is:
-            The probability of starting in the first state mulitpleied by 
-            The probability of the first emission at that state
-            '''
-            viterbiMatrix[i][0] = self.initialProbabilities[i] * self.emissionProbabilities[i][observations[0]]
+            initialProbToState = self.initialProbabilities[i] * self.emissionProbabilities[i][observations[0]]
+            viterbiMatrix[i][0] = initialProbToState
+        
+        #Fill the matrix by looking for the max probability to that state from the previous column
         for time in range(1, len(observations)):
             for state in range(self.states):
-                '''
-                For each state, we calculate the probability of being in that state at time t
-                '''
-                prevStatePossibilities = []
+                maxPrevStatePossibility = 0
                 for prevState in range(self.states):
-                    '''
-                    For each state, we calculate the probability of being in that state at time t
-                    '''
-                    prevStatePossibilities.append(viterbiMatrix[prevState][time-1] * self.transitionsProbabilities[prevState][state] * self.emissionProbabilities[state][observations[time]])
-                viterbiMatrix[state][time] = max(prevStatePossibilities)
-        return viterbiMatrix
+                    curPosibilty = viterbiMatrix[prevState][time-1] * self.transitionsProbabilities[prevState][state] * self.emissionProbabilities[state][observations[time]]
+                    if curPosibilty > maxPrevStatePossibility:
+                        maxPrevStatePossibility = curPosibilty
+                        prevStateMatrix[state][time] = prevState
+                viterbiMatrix[state][time] = maxPrevStatePossibility
+        return self.getPath(viterbiMatrix, prevStateMatrix)
     
-    def test(self):
+    def getPath(self, viterbiMatrix: list, prevStateMatrix: list):
+        # Get the max probability from last column
+        maxProbability, maxProbabilityIndex = 0, 0
+        for index,row in enumerate(viterbiMatrix):
+            if row[-1] > maxProbability:
+                maxProbability = row[-1]
+                maxProbabilityIndex = index
+        #Get the path by tracing prevStateMatrix from last column to first column
+        path = []
+        path.append(maxProbabilityIndex)
+        while prevStateMatrix[path[-1]][-len(path)]>-1:
+            path.append(prevStateMatrix[path[-1]][len(path)])
+        path.reverse()
+        return path
+
+    def testViterbi(self):
         print(self.viterbi(self.observations))
 
-
-def test():
-    observations = [0, 1, 0, 1]
-    transitionsProbabilities = np.array([[0.7, 0.3], [0.4, 0.6]])
-    emissionProbabilities = np.array([{0: 0.1, 1: 0.4}, {0: 0.6, 1: 0.3}])
-    initialProbabilities = {0: 0.6, 1: 0.4}
-    hmm = hiddenMarkovModel(observations, transitionsProbabilities, emissionProbabilities, initialProbabilities)
-    hmm.test()
-
 if __name__ == "__main__":
-    test()
+    model = hiddenMarkovModel.buildDefault()
+    model.testViterbi()
