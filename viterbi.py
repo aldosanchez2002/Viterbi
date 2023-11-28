@@ -1,9 +1,18 @@
 '''
 Viterbi algorithm for Hidden Markov Models
+Aldo Sanchez
 '''
 class hiddenMarkovModel:
 
-    def __init__(self, observations: list, transitionsProbabilities: list, emissionProbabilities: list, initialProbabilities: list):
+    def __init__(
+            self, 
+            observations: list = [0, 1, 0, 1], 
+            transitionsProbabilities: list =    [[0.7, 0.3], 
+                                                [0.4, 0.6]], 
+            emissionProbabilities: list =   [[0.1, 0.4], 
+                                            [0.6, 0.3]], 
+            initialProbabilities: list =   [0.6, 0.4]
+            ):
         '''
         obersevations: list of observations
         transitionsProbabilities: list of lists of transition probabilities from state i to state j
@@ -15,16 +24,6 @@ class hiddenMarkovModel:
         self.emissionProbabilities = emissionProbabilities
         self.initialProbabilities = initialProbabilities
         self.states = len(initialProbabilities)
-        
-    @classmethod
-    def buildDefault(self):
-        observations =             [0, 1, 0, 1]
-        transitionsProbabilities = [[0.7, 0.3], 
-                                    [0.4, 0.6]]
-        emissionProbabilities =    [[0.1, 0.4], 
-                                    [0.6, 0.3]]
-        initialProbabilities =     [0.6, 0.4]
-        return hiddenMarkovModel(observations, transitionsProbabilities, emissionProbabilities, initialProbabilities)
 
     def viterbi(self, observations: list):
         viterbiMatrix = [[0 for _ in observations] for j in range(self.states)]
@@ -43,7 +42,16 @@ class hiddenMarkovModel:
             for state in range(self.states):
                 maxPrevStatePossibility = 0
                 for prevState in range(self.states):
-                    curPosibilty = viterbiMatrix[prevState][time-1] * self.transitionsProbabilities[prevState][state] * self.emissionProbabilities[state][observations[time]]
+                    '''
+                    curPosibilty value is:
+                    The probability of the previous state at the previous time multiplied by
+                    The probability of the transition from the previous state to the current state multiplied by
+                    The probability of emmiting the current observation
+                    '''
+                    curPosibilty = viterbiMatrix[prevState][time-1] 
+                    curPosibilty *= self.transitionsProbabilities[prevState][state] 
+                    curPosibilty *= self.emissionProbabilities[state][observations[time]]
+                    # Taking the max means that the paths with lower probabilities will be ignored
                     if curPosibilty > maxPrevStatePossibility:
                         maxPrevStatePossibility = curPosibilty
                         prevStateMatrix[state][time] = prevState
@@ -69,5 +77,5 @@ class hiddenMarkovModel:
         print(self.viterbi(self.observations))
 
 if __name__ == "__main__":
-    model = hiddenMarkovModel.buildDefault()
+    model = hiddenMarkovModel() #default values
     model.testViterbi()
